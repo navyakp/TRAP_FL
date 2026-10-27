@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-chart-bar me-2" style="color:#0EA5E9"></i>Experiment Results</h1>
+      <p class="page-subtitle">Comparison of Federated Learning strategies on UNSW-NB15 dataset</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="badge bg-success fs-6"><i class="fas fa-circle me-1" style="font-size:.6rem"></i>Models Loaded</span>
+    </div>
+  </div>
+
+  {% if results %}
+  <!-- Best Model Banner -->
+  {% set best = results | sort(attribute='F1', reverse=True) | first %}
+  <div style="background:linear-gradient(135deg,#0369A1,#0EA5E9);border-radius:18px;padding:1.5rem 2rem;color:#fff;margin-bottom:1.5rem;position:relative;overflow:hidden">
+    <div style="position:absolute;right:-30px;top:-30px;width:200px;height:200px;background:rgba(255,255,255,.08);border-radius:50%"></div>
+    <div style="position:absolute;right:60px;bottom:-40px;width:120px;height:120px;background:rgba(255,255,255,.06);border-radius:50%"></div>
+    <div style="position:relative;z-index:1">
+      <span style="background:rgba(255,255,255,.2);border-radius:50px;padding:.25rem .9rem;font-size:.78rem;font-weight:700;letter-spacing:1px">🏆 BEST STRATEGY</span>
+      <h3 style="font-size:1.8rem;font-weight:900;margin:.5rem 0 .25rem">{{ best.Model }}</h3>
+      <div class="d-flex gap-3 flex-wrap">
+        <span>Accuracy: <strong style="color:#7DD3FC">{{ '%.2f'|format(best.Accuracy*100) }}%</strong></span>
+        <span>F1: <strong style="color:#7DD3FC">{{ '%.4f'|format(best.F1) }}</strong></span>
+        <span>FPR: <strong style="color:#7DD3FC">{{ '%.4f'|format(best.FPR) }}</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric Cards Row -->
+  <div class="row g-3 mb-4">
+    {% for r in results %}
+    <div class="col-12 col-md-6 col-xl">
+      <div style="background:#fff;border:1.5px solid {% if r.Model==best.Model %}#0EA5E9{% else %}#E0F2FE{% endif %};border-radius:18px;padding:1.2rem;position:relative;transition:.3s" class="h-100">
+        {% if r.Model==best.Model %}
+        <span style="position:absolute;top:.6rem;right:.6rem;background:#0EA5E9;color:#fff;border-radius:8px;padding:.15rem .5rem;font-size:.7rem;font-weight:700">★ Best</span>
+        {% endif %}
+        <div style="font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:.5rem">{{ r.Model }}</div>
+        <div style="font-size:2rem;font-weight:900;color:#0369A1">{{ '%.1f'|format(r.Accuracy*100) }}<span style="font-size:.9rem">%</span></div>
+        <div style="font-size:.72rem;color:#94A3B8;margin-bottom:.75rem">Accuracy</div>
+        <div class="row g-1">
+          <div class="col-6">
+            <div style="background:#F0F9FF;border-radius:10px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.95rem;font-weight:800;color:#0EA5E9">{{ '%.3f'|format(r.F1) }}</div>
+              <div style="font-size:.68rem;color:#94A3B8">F1 Score</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:#F0F9FF;border-radius:10px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.95rem;font-weight:800;color:{% if r.FPR<0.3 %}#10B981{% elif r.FPR<0.45 %}#F59E0B{% else %}#EF4444{% endif %}">{{ '%.3f'|format(r.FPR) }}</div>
+              <div style="font-size:.68rem;color:#94A3B8">FPR</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:#F0F9FF;border-radius:10px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.95rem;font-weight:800;color:#0369A1">{{ '%.3f'|format(r.Precision) }}</div>
+              <div style="font-size:.68rem;color:#94A3B8">Precision</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:#F0F9FF;border-radius:10px;padding:.4rem .6rem;text-align:center">
+              <div style="font-size:.95rem;font-weight:800;color:#0369A1">{{ '%.3f'|format(r.Recall) }}</div>
+              <div style="font-size:.68rem;color:#94A3B8">Recall</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Full Table -->
+  <h5 style="font-weight:800;color:#0C4A6E;margin-bottom:1rem"><i class="fas fa-table me-2" style="color:#0EA5E9"></i>Full Metrics Table</h5>
+  <div style="overflow-x:auto;border-radius:16px;border:1.5px solid #E0F2FE">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>Model / Strategy</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1 Score</th><th>FPR ↓</th><th>FNR ↓</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+        <tr {% if r.Model==best.Model %}style="background:#F0F9FF;font-weight:600"{% endif %}>
+          <td>
+            {% if r.Model==best.Model %}<i class="fas fa-star text-warning me-1"></i>{% endif %}
+            <strong style="color:#0C4A6E">{{ r.Model }}</strong>
+          </td>
+          <td>{{ '%.4f'|format(r.Accuracy) }}</td>
+          <td>{{ '%.4f'|format(r.Precision) }}</td>
+          <td>{{ '%.4f'|format(r.Recall) }}</td>
+          <td><strong style="color:#0369A1">{{ '%.4f'|format(r.F1) }}</strong></td>
+          <td><span style="color:{% if r.FPR<0.3 %}#10B981{% elif r.FPR<0.45 %}#D97706{% else %}#EF4444{% endif %}">{{ '%.4f'|format(r.FPR) }}</span></td>
+          <td>{{ '%.4f'|format(r.FNR) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="text-center py-5">
+    <div style="font-size:4rem;margin-bottom:1rem">📊</div>
+    <h4 style="color:#0C4A6E;font-weight:700">No Experiment Results Yet</h4>
+    <p class="text-muted">Run <code>python experiments/runner.py</code> to train and evaluate all strategies.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <a href="/manual" style="text-decoration:none">
+      <div style="background:#fff;border:1.5px solid #E0F2FE;border-radius:18px;padding:1.5rem;transition:.3s;display:flex;align-items:center;gap:1rem" class="quick-card">
+        <div style="width:52px;height:52px;background:linear-gradient(135deg,#0EA5E9,#38BDF8);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;flex-shrink:0">🔍</div>
+        <div><div style="font-weight:800;color:#0C4A6E;font-size:1rem">Manual Predict</div><div style="color:#64748b;font-size:.83rem">Enter 8 features manually</div></div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="/simulation" style="text-decoration:none">
+      <div style="background:#fff;border:1.5px solid #E0F2FE;border-radius:18px;padding:1.5rem;transition:.3s;display:flex;align-items:center;gap:1rem" class="quick-card">
+        <div style="width:52px;height:52px;background:linear-gradient(135deg,#10B981,#34D399);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;flex-shrink:0">▶️</div>
+        <div><div style="font-weight:800;color:#0C4A6E;font-size:1rem">Auto Simulation</div><div style="color:#64748b;font-size:.83rem">Stream 82K+ test samples</div></div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="/history" style="text-decoration:none">
+      <div style="background:#fff;border:1.5px solid #E0F2FE;border-radius:18px;padding:1.5rem;transition:.3s;display:flex;align-items:center;gap:1rem" class="quick-card">
+        <div style="width:52px;height:52px;background:linear-gradient(135deg,#8B5CF6,#A78BFA);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;flex-shrink:0">📋</div>
+        <div><div style="font-weight:800;color:#0C4A6E;font-size:1rem">View History</div><div style="color:#64748b;font-size:.83rem">All past predictions</div></div>
+      </div>
+    </a>
+  </div>
+</div>
+
+{% block extra_head %}
+<style>.quick-card:hover{box-shadow:0 12px 35px rgba(14,165,233,.15);transform:translateY(-4px);border-color:#7DD3FC!important}</style>
+{% endblock %}
+{% endblock %}

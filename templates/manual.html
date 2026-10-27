@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.input-card { background: #fff; border: 1.5px solid #E0F2FE; border-radius: 18px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(14,165,233,0.05); }
+.result-card { background: linear-gradient(135deg, #0C4A6E, #0369A1); color: #fff; border-radius: 18px; padding: 1.5rem; display: none; margin-bottom: 1rem; }
+.chart-container { background: #fff; border: 1.5px solid #E0F2FE; border-radius: 18px; padding: 1rem; box-shadow: 0 4px 20px rgba(14,165,233,0.05); display: none; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-search me-2 text-sky"></i>Manual Prediction</h1>
+      <p class="page-subtitle">Test the TRAP-FL IDS/IPS with specific network traffic parameters.</p>
+    </div>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="input-card">
+        <h5 class="mb-3" style="color:#0C4A6E;font-weight:700">Traffic Parameters</h5>
+        <form id="predForm">
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-bold">Client IP</label>
+            <input type="text" class="form-control" id="client_ip" value="192.168.1.100">
+          </div>
+          <div class="row g-2">
+            {% for f in features %}
+            <div class="col-6">
+              <label class="form-label text-muted small fw-bold" title="{{ f }}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f }}</label>
+              <input type="number" step="any" class="form-control" id="{{ f }}" required value="0">
+            </div>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-4 fw-bold" style="background:linear-gradient(135deg,#0EA5E9,#0369A1);border:none;padding:.8rem;border-radius:12px">Analyze Traffic</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="result-card" id="resCard">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0 fw-bold">Analysis Results</h5>
+          <span class="badge bg-light text-dark" id="resStatus">Pending</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <div style="background:rgba(255,255,255,0.1);padding:1rem;border-radius:12px;height:100%">
+              <div class="text-uppercase small fw-bold mb-1" style="color:#7DD3FC">IDS Classification</div>
+              <div id="idsClass" class="fs-4 fw-bold">-</div>
+              <div id="idsProb" class="small mt-1">-</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:rgba(255,255,255,0.1);padding:1rem;border-radius:12px;height:100%">
+              <div class="text-uppercase small fw-bold mb-1" style="color:#7DD3FC">IPS Action</div>
+              <div id="ipsAction" class="fs-4 fw-bold">-</div>
+              <div id="ipsReason" class="small mt-1 text-wrap">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="chart-container" id="chartCard">
+        <div class="row">
+          <div class="col-md-6">
+            <p class="text-center fw-bold text-muted small mb-1">Threat Confidence</p>
+            <div style="position: relative; height: 200px;">
+              <canvas id="gaugeChart"></canvas>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <p class="text-center fw-bold text-muted small mb-1">Feature Distribution</p>
+            <div style="position: relative; height: 200px;">
+              <canvas id="radarChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+let gaugeChart, radarChart;
+function initCharts() {
+    const ctxG = document.getElementById('gaugeChart').getContext('2d');
+    gaugeChart = new Chart(ctxG, {
+        type: 'doughnut',
+        data: { labels: ['Threat Prob', 'Safe Prob'], datasets: [{ data: [0, 100], backgroundColor: ['#EF4444', '#10B981'], borderWidth: 0 }] },
+        options: { rotation: -90, circumference: 180, cutout: '75%', plugins: { legend: { display: false } }, maintainAspectRatio: false }
+    });
+    const ctxR = document.getElementById('radarChart').getContext('2d');
+    radarChart = new Chart(ctxR, {
+        type: 'radar',
+        data: { labels: {{ features|tojson|safe }}, datasets: [{ label: 'Input Value', data: [0,0,0,0,0,0,0,0], backgroundColor: 'rgba(14,165,233,0.2)', borderColor: '#0EA5E9', pointBackgroundColor: '#0369A1' }] },
+        options: { scales: { r: { ticks: { display: false } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }
+    });
+}
+
+document.getElementById('predForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = { client_ip: document.getElementById('client_ip').value };
+    const features = {{ features|tojson|safe }};
+    features.forEach(f => data[f] = parseFloat(document.getElementById(f).value));
+    
+    const btn = e.target.querySelector('button');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    
+    try {
+        const res = await fetch('/api/predict_manual', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const out = await res.json();
+        
+        document.getElementById('resCard').style.display = 'block';
+        document.getElementById('chartCard').style.display = 'block';
+        if(!gaugeChart) initCharts();
+        
+        const probMalicious = out.prediction_prob * 100;
+        const confidence = out.is_malicious ? probMalicious : (100 - probMalicious);
+        
+        document.getElementById('resStatus').textContent = out.is_malicious ? 'Threat Detected' : 'Traffic Safe';
+        document.getElementById('idsClass').textContent = out.ids_classification;
+        document.getElementById('idsClass').style.color = out.is_malicious ? '#FECACA' : '#A7F3D0';
+        document.getElementById('idsProb').textContent = 'Confidence: ' + confidence.toFixed(2) + '%';
+        
+        document.getElementById('ipsAction').textContent = out.action;
+        const actionColors = { 'ALLOW': '#A7F3D0', 'MONITOR': '#BAE6FD', 'ALERT': '#FDE68A', 'BLOCK': '#FECACA' };
+        document.getElementById('ipsAction').style.color = actionColors[out.action] || '#fff';
+        
+        // If blocked by blocklist, show an unblock button
+        if(out.action === 'BLOCK' && out.reason.includes('Already in blocklist')) {
+            document.getElementById('ipsReason').innerHTML = out.reason + 
+                ` <a href="#" onclick="unblockIP('${data.client_ip}')" style="color:#A7F3D0;text-decoration:underline;margin-left:5px">Unblock IP</a>`;
+        } else {
+            document.getElementById('ipsReason').textContent = out.reason;
+        }
+        
+        gaugeChart.data.datasets[0].data = [probMalicious, 100 - probMalicious];
+        // Colors and labels are already statically defined in initCharts as ['Threat Prob', 'Safe Prob'] -> [Red, Green]
+        gaugeChart.update();
+        
+        radarChart.data.datasets[0].data = features.map(f => data[f]);
+        radarChart.update();
+        
+    } catch(err) { alert('Error: ' + err); }
+    btn.innerHTML = 'Analyze Traffic';
+});
+
+async function unblockIP(ip) {
+    if(!confirm(`Remove ${ip} from IPS Blocklist?`)) return;
+    try {
+        await fetch('/api/ips/unblock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ip: ip})
+        });
+        alert(`${ip} removed from blocklist. You can test it again.`);
+        document.querySelector('#predForm button').click(); // re-test
+    } catch(e) {
+        alert('Error unblocking: ' + e);
+    }
+}
+</script>
+{% endblock %}

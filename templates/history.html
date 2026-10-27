@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.chart-box { background: #fff; border: 1.5px solid #E0F2FE; border-radius: 16px; padding: 1rem; box-shadow: 0 4px 15px rgba(14,165,233,0.05); height: 260px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fas fa-history me-2" style="color:#0EA5E9"></i>Prediction History</h1>
+      <p class="page-subtitle">All manual predictions made by your account</p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-primary fs-6">{{ records|length }} Records</span>
+      {% if records %}
+      <button class="btn btn-sm btn-outline-danger" onclick="clearAll()" style="border-radius:10px;font-weight:600">
+        <i class="fas fa-trash me-1"></i>Clear All
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if records %}
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    {% set mal_count = records | selectattr('ids_classification','eq','Malicious') | list | length %}
+    {% set block_count = records | selectattr('ips_action','eq','BLOCK') | list | length %}
+    {% set alert_count = records | selectattr('ips_action','eq','ALERT') | list | length %}
+    <div class="col-6 col-md-3">
+      <div style="background:#F0F9FF;border-radius:16px;padding:1.2rem;border:1.5px solid #E0F2FE;text-align:center">
+        <div style="font-size:1.8rem;font-weight:900;color:#0EA5E9">{{ records|length }}</div>
+        <div style="font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Total Predictions</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div style="background:#FEF2F2;border-radius:16px;padding:1.2rem;border:1.5px solid #FECACA;text-align:center">
+        <div style="font-size:1.8rem;font-weight:900;color:#EF4444">{{ mal_count }}</div>
+        <div style="font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Malicious Detected</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div style="background:#FFFBEB;border-radius:16px;padding:1.2rem;border:1.5px solid #FDE68A;text-align:center">
+        <div style="font-size:1.8rem;font-weight:900;color:#D97706">{{ alert_count }}</div>
+        <div style="font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Alerts Triggered</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div style="background:#FFF1F2;border-radius:16px;padding:1.2rem;border:1.5px solid #FECDD3;text-align:center">
+        <div style="font-size:1.8rem;font-weight:900;color:#BE123C">{{ block_count }}</div>
+        <div style="font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px">IPs Blocked</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time / Interactive Graphs -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-7">
+      <div class="chart-box">
+        <h6 class="text-center fw-bold text-muted mb-2">Threat Probability Trend (Filtered)</h6>
+        <div style="height:200px"><canvas id="histLineChart"></canvas></div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="chart-box">
+        <h6 class="text-center fw-bold text-muted mb-2">IPS Actions (Filtered)</h6>
+        <div style="height:200px"><canvas id="histPieChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <input type="text" id="searchBox" class="form-control" style="max-width:280px;border-radius:12px;border:1.5px solid #E0F2FE;font-size:.88rem" placeholder="🔍 Search records...">
+    <select id="filterAction" class="form-select" style="max-width:160px;border-radius:12px;border:1.5px solid #E0F2FE;font-size:.88rem">
+      <option value="">All IPS Actions</option>
+      <option value="ALLOW">ALLOW</option>
+      <option value="MONITOR">MONITOR</option>
+      <option value="ALERT">ALERT</option>
+      <option value="BLOCK">BLOCK</option>
+    </select>
+    <select id="filterIDS" class="form-select" style="max-width:160px;border-radius:12px;border:1.5px solid #E0F2FE;font-size:.88rem">
+      <option value="">All IDS</option>
+      <option value="Normal">Normal</option>
+      <option value="Malicious">Malicious</option>
+    </select>
+  </div>
+
+  <div style="overflow-x:auto;border-radius:16px;border:1.5px solid #E0F2FE">
+    <table class="table mb-0" id="histTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date / Time</th>
+          <th>Type</th>
+          <th>Confidence</th>
+          <th>🔍 IDS Classification</th>
+          <th>🛡️ IPS Action</th>
+          <th>Reason</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr data-action="{{ r.ips_action }}" data-ids="{{ r.ids_classification }}">
+          <td class="text-muted" style="font-size:.8rem">{{ r.id }}</td>
+          <td style="white-space:nowrap;font-size:.82rem;color:#64748b">{{ r.created_at[:16] if r.created_at else '-' }}</td>
+          <td><span class="badge bg-primary">{{ r.prediction_type|title }}</span></td>
+          <td><strong style="color:#0369A1">{{ '%.2f'|format(r.probability * 100) }}%</strong></td>
+          <td>
+            {% if r.ids_classification == 'Malicious' %}
+            <span class="badge bg-danger">🔴 Malicious</span>
+            {% else %}
+            <span class="badge bg-success">🟢 Normal</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.ips_action == 'BLOCK' %}<span class="badge bg-danger">BLOCK</span>
+            {% elif r.ips_action == 'ALERT' %}<span class="badge bg-warning text-dark">ALERT</span>
+            {% elif r.ips_action == 'MONITOR' %}<span class="badge bg-info text-dark">MONITOR</span>
+            {% else %}<span class="badge bg-success">ALLOW</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem;color:#64748b;max-width:200px">{{ r.reason }}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteRow({{ r.id }},this)" style="border-radius:8px;padding:.25rem .6rem;font-size:.78rem">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <!-- Empty state -->
+  <div class="text-center py-5">
+    <div style="font-size:5rem;margin-bottom:1rem">📭</div>
+    <h4 style="color:#0C4A6E;font-weight:700">No Prediction History Yet</h4>
+    <p class="text-muted">Make a manual prediction and it will appear here.</p>
+    <a href="/manual" class="btn btn-primary mt-2" style="border-radius:12px;font-weight:600">
+      <i class="fas fa-search me-2"></i>Make a Prediction
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if records %}
+<script>
+const allRecords = {{ records|tojson|safe }};
+let lineChart, pieChart;
+
+function initCharts() {
+    const ctxL = document.getElementById('histLineChart').getContext('2d');
+    lineChart = new Chart(ctxL, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Probability (%)', data: [], borderColor: '#0EA5E9', backgroundColor: 'rgba(14,165,233,0.1)', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+    });
+    
+    const ctxP = document.getElementById('histPieChart').getContext('2d');
+    pieChart = new Chart(ctxP, {
+        type: 'doughnut',
+        data: { labels: ['ALLOW', 'MONITOR', 'ALERT', 'BLOCK'], datasets: [{ data: [0,0,0,0], backgroundColor: ['#10B981', '#38BDF8', '#F59E0B', '#EF4444'], borderWidth:1 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+    });
+}
+
+function applyFilter() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const act = document.getElementById('filterAction').value;
+  const ids = document.getElementById('filterIDS').value;
+  
+  let visRecords = [];
+  
+  document.querySelectorAll('#histTable tbody tr').forEach((tr, i) => {
+    const rec = allRecords[i];
+    const txt = tr.textContent.toLowerCase();
+    const trAct = tr.dataset.action;
+    const trIds = tr.dataset.ids;
+    const show = txt.includes(q) && (!act || trAct === act) && (!ids || trIds === ids);
+    tr.style.display = show ? '' : 'none';
+    if(show) visRecords.push(rec);
+  });
+  
+  updateCharts(visRecords);
+}
+
+function updateCharts(visRecords) {
+    // Line chart: last 30 visible records (chronological order)
+    const recent = visRecords.slice(0, 30).reverse();
+    lineChart.data.labels = recent.map((_, i) => '#' + recent[i].id);
+    lineChart.data.datasets[0].data = recent.map(r => (r.probability * 100).toFixed(1));
+    lineChart.update();
+    
+    // Pie chart
+    const c = { ALLOW:0, MONITOR:0, ALERT:0, BLOCK:0 };
+    visRecords.forEach(r => { if(c[r.ips_action] !== undefined) c[r.ips_action]++; });
+    pieChart.data.datasets[0].data = [c.ALLOW, c.MONITOR, c.ALERT, c.BLOCK];
+    pieChart.update();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initCharts();
+    applyFilter();
+});
+
+document.getElementById('searchBox')?.addEventListener('input', applyFilter);
+document.getElementById('filterAction')?.addEventListener('change', applyFilter);
+document.getElementById('filterIDS')?.addEventListener('change', applyFilter);
+
+function deleteRow(id, btn) {
+  if (!confirm('Delete this prediction record?')) return;
+  fetch('/api/history/delete/' + id, {method:'DELETE'})
+    .then(r => r.json()).then(() => location.reload());
+}
+function clearAll() {
+  if (!confirm('Clear ALL prediction history? This cannot be undone.')) return;
+  fetch('/api/history/clear', {method:'DELETE'})
+    .then(r => r.json()).then(() => location.reload());
+}
+</script>
+{% endif %}
+{% endblock %}

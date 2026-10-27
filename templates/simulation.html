@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.stat-box { background: #fff; border: 1.5px solid #E0F2FE; border-radius: 12px; padding: 1rem; text-align: center; box-shadow: 0 4px 15px rgba(14,165,233,0.05); }
+.stat-val { font-size: 1.8rem; font-weight: 900; color: #0C4A6E; }
+.stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+.sim-table th { background: #0C4A6E !important; color: #fff !important; }
+.chart-box { background: #fff; border: 1.5px solid #E0F2FE; border-radius: 16px; padding: 1rem; box-shadow: 0 4px 15px rgba(14,165,233,0.05); height: 260px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h1 class="page-title"><i class="fas fa-play-circle me-2" style="color:#0EA5E9"></i>Live Simulation</h1>
+      <p class="page-subtitle">Stream testing data through TRAP-FL IDS/IPS Engine in real-time.</p>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-success fw-bold px-4" id="btnStart"><i class="fas fa-play me-2"></i>START</button>
+      <button class="btn btn-warning fw-bold px-4" id="btnPause"><i class="fas fa-pause me-2"></i>PAUSE</button>
+      <button class="btn btn-danger fw-bold px-4" id="btnStop"><i class="fas fa-stop me-2"></i>STOP</button>
+    </div>
+  </div>
+  
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-2"><div class="stat-box"><div class="stat-val text-primary" id="scTotal">0</div><div class="stat-label">Total</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-box"><div class="stat-val text-success" id="scNormal">0</div><div class="stat-label">Normal</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-box"><div class="stat-val text-danger" id="scMalicious">0</div><div class="stat-label">Malicious</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-box"><div class="stat-val text-success" id="scAllow">0</div><div class="stat-label">Allow</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-box"><div class="stat-val text-warning" id="scMonitor">0</div><div class="stat-label">Monitor/Alert</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-box"><div class="stat-val text-danger" id="scBlock">0</div><div class="stat-label">Block</div></div></div>
+  </div>
+  
+  <div class="row g-3 mb-4">
+    <div class="col-lg-8">
+      <div class="chart-box">
+        <h6 class="fw-bold text-muted mb-2 text-center">Live Threat Probability Timeline</h6>
+        <div style="height: 200px"><canvas id="lineChart"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="chart-box">
+        <h6 class="fw-bold text-muted mb-2 text-center">IPS Action Distribution</h6>
+        <div style="height: 200px"><canvas id="donutChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:400px; overflow-y:auto; border-radius:12px; border:1px solid #E0F2FE;">
+    <table class="table table-hover sim-table mb-0">
+      <thead style="position:sticky; top:0; z-index:1">
+        <tr><th>#</th><th>True Label</th><th>IDS Probability</th><th>IDS Class</th><th>IPS Action</th><th>Reason</th></tr>
+      </thead>
+      <tbody id="simBody"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+const counts = { total:0, normal:0, malicious:0, allow:0, mon_alert:0, block:0 };
+let lineChart, donutChart;
+
+function initCharts() {
+    const ctxL = document.getElementById('lineChart').getContext('2d');
+    lineChart = new Chart(ctxL, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Threat Prob (%)', data: [], borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } }, animation: { duration: 0 } }
+    });
+    
+    const ctxD = document.getElementById('donutChart').getContext('2d');
+    donutChart = new Chart(ctxD, {
+        type: 'doughnut',
+        data: { labels: ['ALLOW', 'MONITOR/ALERT', 'BLOCK'], datasets: [{ data: [0,0,0], backgroundColor: ['#10B981', '#F59E0B', '#EF4444'], borderWidth: 1 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+}
+initCharts();
+
+function updateSim(cmd) { fetch('/api/sim/control', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({command:cmd})}); }
+document.getElementById('btnStart').onclick = () => updateSim('START');
+document.getElementById('btnPause').onclick = () => updateSim('PAUSE');
+document.getElementById('btnStop').onclick = () => { updateSim('STOP'); document.getElementById('simBody').innerHTML=''; Object.keys(counts).forEach(k=>counts[k]=0); updateDashboard(); };
+
+const evtSource = new EventSource('/api/sim/stream');
+evtSource.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const p = data.prob;
+    const pPct = (p*100).toFixed(1);
+    const isMal = p > 0.5;
+    
+    counts.total++;
+    if(isMal) counts.malicious++; else counts.normal++;
+    if(data.action==='ALLOW') counts.allow++;
+    else if(data.action==='BLOCK') counts.block++;
+    else counts.mon_alert++;
+    
+    updateDashboard(pPct);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${data.index}</td>
+      <td>${data.true_label===1 ? '<span class="badge bg-danger">Attack</span>' : '<span class="badge bg-success">Normal</span>'}</td>
+      <td><strong style="color:${isMal?'#EF4444':'#10B981'}">${pPct}%</strong></td>
+      <td>${isMal ? '<span class="badge bg-danger">🔴 Malicious</span>' : '<span class="badge bg-success">🟢 Normal</span>'}</td>
+      <td><span class="badge" style="background:${data.action==='BLOCK'?'#EF4444':data.action==='ALLOW'?'#10B981':'#F59E0B'}">${data.action}</span></td>
+      <td class="small text-muted">${data.reason}</td>
+    `;
+    const tbody = document.getElementById('simBody');
+    tbody.insertBefore(tr, tbody.firstChild);
+    if(tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+};
+
+function updateDashboard(newProb = null) {
+    document.getElementById('scTotal').innerText = counts.total;
+    document.getElementById('scNormal').innerText = counts.normal;
+    document.getElementById('scMalicious').innerText = counts.malicious;
+    document.getElementById('scAllow').innerText = counts.allow;
+    document.getElementById('scMonitor').innerText = counts.mon_alert;
+    document.getElementById('scBlock').innerText = counts.block;
+    
+    if(newProb !== null) {
+        lineChart.data.labels.push(counts.total);
+        lineChart.data.datasets[0].data.push(newProb);
+        if(lineChart.data.labels.length > 20) {
+            lineChart.data.labels.shift();
+            lineChart.data.datasets[0].data.shift();
+        }
+        lineChart.update();
+        
+        donutChart.data.datasets[0].data = [counts.allow, counts.mon_alert, counts.block];
+        donutChart.update();
+    } else {
+        lineChart.data.labels = []; lineChart.data.datasets[0].data = []; lineChart.update();
+        donutChart.data.datasets[0].data = [0,0,0]; donutChart.update();
+    }
+}
+</script>
+{% endblock %}

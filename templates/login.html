@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login — TRAP-FL</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{height:100vh;display:flex;font-family:'Segoe UI',sans-serif;overflow:hidden}
+.left{flex:1;background:linear-gradient(145deg,#0C4A6E 0%,#0369A1 50%,#0EA5E9 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;position:relative;overflow:hidden}
+.right{width:480px;background:#fff;display:flex;flex-direction:column;justify-content:center;padding:3rem 2.8rem;overflow-y:auto}
+
+/* Left decorative shapes */
+.dec{position:absolute;border-radius:50%;opacity:.1;animation:spin 20s linear infinite}
+.d1{width:450px;height:450px;background:#fff;top:-150px;right:-150px;animation-direction:reverse}
+.d2{width:280px;height:280px;background:#38BDF8;bottom:-80px;left:-80px}
+.d3{width:120px;height:120px;background:#fff;top:40%;left:10%;border-radius:20px;transform:rotate(45deg);animation:float 8s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(45deg)}50%{transform:translateY(-20px) rotate(55deg)}}
+
+.brand{font-size:2rem;font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:.5rem}
+.brand-sub{color:rgba(255,255,255,.75);font-size:.95rem;text-align:center;max-width:320px;line-height:1.6}
+.feats{margin-top:2.5rem;text-align:left;width:100%;max-width:320px}
+.feat-li{display:flex;align-items:center;gap:.75rem;color:rgba(255,255,255,.85);font-size:.9rem;margin-bottom:1rem}
+.feat-li i{background:rgba(255,255,255,.18);width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#7DD3FC;flex-shrink:0}
+
+/* Right form */
+.form-logo{font-size:1.6rem;font-weight:900;color:#0369A1;margin-bottom:.25rem}
+.form-sub{color:#64748b;font-size:.9rem;margin-bottom:2rem}
+.form-label{font-weight:600;color:#374151;font-size:.875rem;margin-bottom:.35rem}
+.form-control{border:1.5px solid #E0F2FE;border-radius:12px;padding:.7rem 1rem;font-size:.95rem;transition:.3s;background:#F8FBFF}
+.form-control:focus{border-color:#0EA5E9;box-shadow:0 0 0 3px rgba(14,165,233,.15);background:#fff}
+.input-icon{position:relative}
+.input-icon i{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:.9rem}
+.input-icon .form-control{padding-left:2.5rem}
+.btn-submit{background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;border:none;border-radius:12px;padding:.8rem;font-weight:700;font-size:1rem;width:100%;transition:.3s;margin-top:.5rem}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(14,165,233,.4)}
+.divider{text-align:center;color:#94A3B8;font-size:.85rem;margin:1.2rem 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:#E0F2FE}
+.divider::before{left:0}.divider::after{right:0}
+.link-text{color:#0EA5E9;text-decoration:none;font-weight:600}
+.link-text:hover{color:#0369A1}
+.alert{border-radius:12px;border:none;font-size:.88rem}
+@media(max-width:768px){.left{display:none}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="left">
+  <div class="dec d1"></div><div class="dec d2"></div><div class="d3"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center">
+    <div class="brand">⚡ TRAP-FL</div>
+    <p class="brand-sub">AI-Powered Intrusion Detection & Prevention with Federated Learning.</p>
+    <div class="feats">
+      <div class="feat-li"><i class="fas fa-shield-alt"></i><span>Real-time IDS/IPS protection engine</span></div>
+      <div class="feat-li"><i class="fas fa-lock"></i><span>Differential privacy & secure aggregation</span></div>
+      <div class="feat-li"><i class="fas fa-network-wired"></i><span>Federated learning across multiple clients</span></div>
+      <div class="feat-li"><i class="fas fa-chart-line"></i><span>Live simulation & prediction history</span></div>
+    </div>
+  </div>
+</div>
+<div class="right">
+  <div class="form-logo">Welcome Back</div>
+  <p class="form-sub">Sign in to access your TRAP-FL dashboard</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat,msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}{% endwith %}
+
+  <form method="POST" action="/login">
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <div class="input-icon">
+        <i class="fas fa-user"></i>
+        <input type="text" name="username" class="form-control" placeholder="Enter your username" required autocomplete="username">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <div class="input-icon">
+        <i class="fas fa-lock"></i>
+        <input type="password" name="password" id="pwd" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="remember" id="rem">
+        <label class="form-check-label text-muted" for="rem" style="font-size:.88rem">Remember me</label>
+      </div>
+    </div>
+    <button type="submit" class="btn-submit">Sign In <i class="fas fa-arrow-right ms-2"></i></button>
+  </form>
+
+  <div class="divider">OR</div>
+  <p class="text-center text-muted" style="font-size:.9rem">Don't have an account? <a href="/signup" class="link-text">Create one free</a></p>
+  <p class="text-center mt-3"><a href="/" class="link-text" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Back to Home</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

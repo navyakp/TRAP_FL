@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign Up — TRAP-FL</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;font-family:'Segoe UI',sans-serif}
+.left{flex:1;background:linear-gradient(145deg,#0C4A6E 0%,#0369A1 50%,#0EA5E9 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;position:relative;overflow:hidden}
+.right{width:520px;background:#fff;display:flex;flex-direction:column;justify-content:center;padding:3rem 2.8rem;overflow-y:auto}
+.dec{position:absolute;border-radius:50%;opacity:.1;animation:spin 22s linear infinite}
+.d1{width:450px;height:450px;background:#fff;top:-150px;right:-150px;animation-direction:reverse}
+.d2{width:280px;height:280px;background:#38BDF8;bottom:-80px;left:-80px}
+.d3{width:120px;height:120px;background:#fff;top:40%;left:10%;border-radius:20px;transform:rotate(45deg);animation:float 8s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(45deg)}50%{transform:translateY(-20px) rotate(55deg)}}
+.brand{font-size:2rem;font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:.5rem}
+.brand-sub{color:rgba(255,255,255,.75);font-size:.95rem;text-align:center;max-width:320px;line-height:1.6}
+.feats{margin-top:2.5rem;text-align:left;width:100%;max-width:320px}
+.feat-li{display:flex;align-items:center;gap:.75rem;color:rgba(255,255,255,.85);font-size:.9rem;margin-bottom:1rem}
+.feat-li i{background:rgba(255,255,255,.18);width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#7DD3FC;flex-shrink:0}
+.form-logo{font-size:1.6rem;font-weight:900;color:#0369A1;margin-bottom:.25rem}
+.form-sub{color:#64748b;font-size:.9rem;margin-bottom:1.8rem}
+.form-label{font-weight:600;color:#374151;font-size:.875rem;margin-bottom:.35rem}
+.form-control{border:1.5px solid #E0F2FE;border-radius:12px;padding:.7rem 1rem;font-size:.95rem;transition:.3s;background:#F8FBFF}
+.form-control:focus{border-color:#0EA5E9;box-shadow:0 0 0 3px rgba(14,165,233,.15);background:#fff}
+.form-control.is-invalid{border-color:#ef4444}
+.input-icon{position:relative}
+.input-icon i{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:.9rem}
+.input-icon .form-control{padding-left:2.5rem}
+.btn-submit{background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;border:none;border-radius:12px;padding:.8rem;font-weight:700;font-size:1rem;width:100%;transition:.3s;margin-top:.25rem}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(14,165,233,.4)}
+.strength-bar{height:5px;border-radius:50px;background:#E0F2FE;margin-top:.5rem;overflow:hidden}
+.strength-fill{height:100%;border-radius:50px;transition:.4s;width:0}
+.strength-text{font-size:.75rem;margin-top:.3rem;font-weight:600}
+.link-text{color:#0EA5E9;text-decoration:none;font-weight:600}
+.link-text:hover{color:#0369A1}
+.alert{border-radius:12px;border:none;font-size:.88rem}
+@media(max-width:900px){.left{display:none}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="left">
+  <div class="dec d1"></div><div class="dec d2"></div><div class="d3"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center">
+    <div class="brand">⚡ TRAP-FL</div>
+    <p class="brand-sub">Join the AI-powered network security platform. Free forever.</p>
+    <div class="feats">
+      <div class="feat-li"><i class="fas fa-play-circle"></i><span>Live auto-simulation on 82K+ packets</span></div>
+      <div class="feat-li"><i class="fas fa-search"></i><span>Manual traffic prediction with 8 features</span></div>
+      <div class="feat-li"><i class="fas fa-history"></i><span>Full prediction history & audit log</span></div>
+      <div class="feat-li"><i class="fas fa-chart-bar"></i><span>Algorithm comparison dashboard</span></div>
+    </div>
+  </div>
+</div>
+<div class="right">
+  <div class="form-logo">Create Account</div>
+  <p class="form-sub">Start securing your network with TRAP-FL</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat,msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}{% endwith %}
+
+  <form method="POST" action="/signup" id="signupForm" novalidate>
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <div class="input-icon">
+        <i class="fas fa-user"></i>
+        <input type="text" name="username" id="uname" class="form-control" placeholder="Choose a username (min 3 chars)" required minlength="3" autocomplete="username">
+      </div>
+      <div class="invalid-feedback" id="uname-err"></div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Email Address</label>
+      <div class="input-icon">
+        <i class="fas fa-envelope"></i>
+        <input type="email" name="email" id="email" class="form-control" placeholder="your@email.com" required autocomplete="email">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <div class="input-icon">
+        <i class="fas fa-lock"></i>
+        <input type="password" name="password" id="pwd" class="form-control" placeholder="Min 6 characters" required minlength="6" autocomplete="new-password">
+      </div>
+      <div class="strength-bar mt-2"><div class="strength-fill" id="sbar"></div></div>
+      <div class="strength-text" id="stxt" style="color:#94A3B8">Enter a password</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Confirm Password</label>
+      <div class="input-icon">
+        <i class="fas fa-check-circle"></i>
+        <input type="password" name="confirm_password" id="cpwd" class="form-control" placeholder="Repeat your password" required autocomplete="new-password">
+      </div>
+      <div class="invalid-feedback" id="cpwd-err">Passwords do not match.</div>
+    </div>
+    <button type="submit" class="btn-submit">Create Account <i class="fas fa-user-plus ms-2"></i></button>
+  </form>
+
+  <p class="text-center text-muted mt-3" style="font-size:.9rem">Already have an account? <a href="/login" class="link-text">Sign in</a></p>
+  <p class="text-center mt-2"><a href="/" class="link-text" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Back to Home</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const pwd=document.getElementById('pwd'),cpwd=document.getElementById('cpwd'),sbar=document.getElementById('sbar'),stxt=document.getElementById('stxt');
+const levels=[{max:2,color:'#EF4444',label:'Weak'},{max:3,color:'#F59E0B',label:'Fair'},{max:4,color:'#10B981',label:'Good'},{max:5,color:'#0369A1',label:'Strong'}];
+function strength(p){let s=0;if(p.length>=6)s++;if(p.length>=10)s++;if(/[A-Z]/.test(p))s++;if(/[0-9]/.test(p))s++;if(/[^a-zA-Z0-9]/.test(p))s++;return s;}
+pwd.addEventListener('input',()=>{const s=strength(pwd.value);const l=levels[Math.min(s,4)-1]||{color:'#E0F2FE',label:'Too short'};sbar.style.width=(s*20)+'%';sbar.style.background=l.color;stxt.textContent=pwd.value.length?l.label:'Enter a password';stxt.style.color=l.color;});
+document.getElementById('signupForm').addEventListener('submit',e=>{if(pwd.value!==cpwd.value){e.preventDefault();cpwd.classList.add('is-invalid');document.getElementById('cpwd-err').style.display='block';}});
+cpwd.addEventListener('input',()=>{if(pwd.value===cpwd.value){cpwd.classList.remove('is-invalid');}});
+</script>
+</body>
+</html>

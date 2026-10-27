@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TRAP-FL IDS/IPS</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{--sky:#0EA5E9;--sky-dark:#0369A1;--sky-pale:#E0F2FE;--deep:#0C4A6E}
+body{padding-top:70px;background:#F0F9FF;font-family:'Segoe UI',sans-serif}
+.navbar{background:linear-gradient(135deg,#0C4A6E,#0369A1)!important;box-shadow:0 2px 22px rgba(0,0,0,.18);padding:.7rem 1.5rem}
+.navbar-brand{font-weight:900;font-size:1.35rem;letter-spacing:2px;color:#fff!important}
+.nav-link{font-weight:500;font-size:.92rem;transition:.2s;border-radius:8px;padding:.45rem .9rem!important}
+.nav-link:hover,.nav-link.active{color:#7DD3FC!important;background:rgba(255,255,255,.1)}
+.user-chip{display:flex;align-items:center;gap:.6rem;cursor:pointer}
+.avatar{width:36px;height:36px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;border:2px solid rgba(255,255,255,.3)}
+.dropdown-menu{border-radius:16px!important;border:1.5px solid #E0F2FE!important;box-shadow:0 10px 40px rgba(14,165,233,.15)!important;padding:.5rem!important;min-width:200px}
+.dropdown-item{border-radius:10px;padding:.5rem .9rem;font-size:.88rem;font-weight:500}
+.dropdown-item:hover{background:#E0F2FE;color:var(--sky-dark)}
+.dropdown-item.text-danger:hover{background:#FEF2F2;color:#EF4444}
+.navbar-toggler{border-color:rgba(255,255,255,.3)}
+.navbar-toggler-icon{filter:invert(1)}
+
+/* Flash messages */
+.alert{border-radius:14px;border:none;font-size:.88rem}
+
+/* Page wrapper */
+.page-wrap{background:#fff;border-radius:22px;padding:2rem;box-shadow:0 4px 24px rgba(14,165,233,.09);border:1.5px solid #E0F2FE;margin-bottom:2rem}
+
+/* Breadcrumb style header */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1.5px solid #E0F2FE}
+.page-title{font-size:1.5rem;font-weight:800;color:var(--deep);margin:0}
+.page-subtitle{color:#64748b;font-size:.88rem;margin:0}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#F0F9FF}
+::-webkit-scrollbar-thumb{background:#7DD3FC;border-radius:3px}
+
+/* Tables */
+.table{border-collapse:separate;border-spacing:0}
+.table thead th{background:#F0F9FF;color:var(--deep);font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.5px;border:none;padding:.9rem 1rem}
+.table tbody td{padding:.8rem 1rem;vertical-align:middle;border-top:1px solid #F0F9FF;font-size:.88rem}
+.table tbody tr:hover td{background:#F8FCFF}
+
+/* Badges */
+.badge{border-radius:8px;font-weight:700;font-size:.75rem;padding:.35em .7em}
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/dashboard">⚡ TRAP-FL</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nb">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nb">
+      <ul class="navbar-nav me-auto gap-1">
+        <li class="nav-item"><a class="nav-link {% if request.path=='/dashboard' %}active{% endif %}" href="/dashboard"><i class="fas fa-chart-bar me-1"></i>Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link {% if request.path=='/manual' %}active{% endif %}" href="/manual"><i class="fas fa-search me-1"></i>Manual Predict</a></li>
+        <li class="nav-item"><a class="nav-link {% if request.path=='/simulation' %}active{% endif %}" href="/simulation"><i class="fas fa-play-circle me-1"></i>Simulation</a></li>
+        <li class="nav-item"><a class="nav-link {% if request.path=='/history' %}active{% endif %}" href="/history"><i class="fas fa-history me-1"></i>History</a></li>
+      </ul>
+      <ul class="navbar-nav">
+        {% if current_user is defined and current_user.is_authenticated %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <div class="user-chip">
+              <div class="avatar">{{ current_user.username[0].upper() }}</div>
+              <span style="color:#fff;font-weight:600;font-size:.9rem">{{ current_user.username }}</span>
+            </div>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><div class="px-3 py-1"><div style="font-weight:700;color:#0C4A6E;font-size:.88rem">{{ current_user.username }}</div><div style="color:#94A3B8;font-size:.8rem">{{ current_user.email }}</div></div></li>
+            <li><hr class="dropdown-divider my-1"></li>
+            <li><a class="dropdown-item" href="/history"><i class="fas fa-history me-2"></i>Prediction History</a></li>
+            <li><a class="dropdown-item text-danger" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+          </ul>
+        </li>
+        {% else %}
+        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 mt-2">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat,msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show mt-2" role="alert">
+    <i class="fas fa-{% if cat=='success' %}check-circle{% elif cat=='danger' %}exclamation-triangle{% elif cat=='warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>{{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}{% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>
